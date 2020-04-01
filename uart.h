@@ -221,6 +221,11 @@ void Uart :: closeUart(){
 }
 
 
+union ConfidencePack{
+
+    float confidence;
+    unsigned short int pack_field[2];
+};
 
 union OutputPack{
 
@@ -230,9 +235,12 @@ union OutputPack{
         unsigned short int roi_width;
         unsigned short int roi_height;
         unsigned short int machine_state;
+
+        unsigned short int confidence1;
+        unsigned short int confidence2;      // use ConfidencePack to unpack
     */
-    unsigned short int data_field[5];
-    unsigned char pack_field[10];
+    unsigned short int data_field[7];
+    unsigned char pack_field[14];
 
 };
 
@@ -249,7 +257,6 @@ union InputPack{
     unsigned char pack_field[10];
 };
 
-
 class ModeSetting{
 public:
     ModeSetting()
@@ -258,13 +265,14 @@ public:
     }
 public:
     bool NaiveMode = true;
-    bool NaiveMode_ClickSelection = true;
+    bool NaiveMode_ClickSelection = false;
     bool ped_or_car = 0;
-    bool NoRecover = true;
+    bool NoRecover = false;
     bool centerSelection = true;
     bool reset = false;
     bool trigger = false;
     bool power_off = false;
+    bool LoiterMode = false;
 
     int left_up_x = 0;
     int left_up_y = 0;
@@ -335,6 +343,11 @@ public:
 
         unsigned char command_c = ( h_NaiveMode | h_NaiveMode_ClickSelection | h_ped_or_car | h_NoRecover | h_centerSelection | h_reset | h_trigger | h_power_off );
 
+        if(LoiterMode)
+        {
+            command_c = 0xFF;
+        }
+
         IP.data_field[0] = command_c;
         IP.data_field[1] = left_up_x;
         IP.data_field[2] = left_up_y;
@@ -347,58 +360,68 @@ public:
         unsigned short int command_i = IP.data_field[0];
         unsigned char command_c = command_i;
 
-        if( (command_c & 0x80) == 0x00)
-            NaiveMode = false;
-        else
-            NaiveMode = true;
-
-        if( (command_c & 0x40) == 0x00)
-            NaiveMode_ClickSelection = false;
-        else
-            NaiveMode_ClickSelection = true;
-
-        if( (command_c & 0x20) == 0x00)
-            ped_or_car = false;
-        else
-            ped_or_car = true;
-
-        if( (command_c & 0x10) == 0x00)
-            NoRecover = false;
-        else
-            NoRecover = true;
-
-        if( (command_c & 0x08) == 0x00)
-            centerSelection = false;
-        else
-            centerSelection = true;
-
-        if( (command_c & 0x04) == 0x00)
-            reset = false;
-        else
-            reset = true;
-
-        if( (command_c & 0x02) == 0x00)
-            trigger = false;
-        else
-            trigger = true;
-
-        if( (command_c & 0x01) == 0x00)
-            power_off = false;
-        else
-            power_off = true;
-
-        left_up_x = IP.data_field[1];
-        left_up_y = IP.data_field[2];
-        roi_width = IP.data_field[3];
-        roi_height = IP.data_field[4];
-    }
-
-    void set_input(unsigned char* serial_command)
-    {
-        for(int i=0;i<10;i++)
+        if(command_c != 0xFF)
         {
-            IP.pack_field[i] = serial_command[i];
+
+            if( (command_c & 0x80) == 0x00)
+                NaiveMode = false;
+            else
+                NaiveMode = true;
+
+            if( (command_c & 0x40) == 0x00)
+                NaiveMode_ClickSelection = false;
+            else
+                NaiveMode_ClickSelection = true;
+
+            if( (command_c & 0x20) == 0x00)
+                ped_or_car = false;
+            else
+                ped_or_car = true;
+
+            if( (command_c & 0x10) == 0x00)
+                NoRecover = false;
+            else
+                NoRecover = true;
+
+            if( (command_c & 0x08) == 0x00)
+                centerSelection = false;
+            else
+                centerSelection = true;
+
+            if( (command_c & 0x04) == 0x00)
+                reset = false;
+            else
+                reset = true;
+
+            if( (command_c & 0x02) == 0x00)
+                trigger = false;
+            else
+                trigger = true;
+
+            if( (command_c & 0x01) == 0x00)
+                power_off = false;
+            else
+                power_off = true;
+
+            left_up_x = IP.data_field[1];
+            left_up_y = IP.data_field[2];
+            roi_width = IP.data_field[3];
+            roi_height = IP.data_field[4];
+
+            LoiterMode = false;
         }
+        else
+        {
+            LoiterMode = true;
+
+            reset = false;
+
+            left_up_x = 0;
+            left_up_y = 0;
+            roi_width = 0;
+            roi_height = 0;
+        }
+
     }
 
     void reset_command()

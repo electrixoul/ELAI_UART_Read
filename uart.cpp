@@ -58,25 +58,34 @@ int main(int argc, char *argv[]) {
 
         /*
          * 每条接收指令由字节数据位开始, '#' 结束
-         * 包含起始结束符号一共11字节
+         * 包含起始结束符号一共15字节
          */
         u.readUart();
-        for(int i=0;i<10 && u.serial_message[i]!='#';i++) {
+        for(int i=0;i<14 && u.serial_message[i]!='#';i++) {
             OP.pack_field[i] = u.serial_message[i];
         }
 
         /*
          * 一般输出以及物理意义:
-         * Message Received:x  y  width  height  1
+         * Message Received:x  y  width  height  1  confidence
          * - 其中, (x,y)代表目标在画面中的包围框的左上角坐标, (width,height)代表包围框的尺寸, 最后一位0/1分别代表跟踪器的[丢失/锁定]状态
          * - 我们使用图像左上角为原点的坐标系, 水平向右为X轴正方向, 垂直向下为Y轴正方向
+         * - 最后一位浮点数据代表信心度
          * 例如:
-         * Message Received:288  218  100  100  1
+         * Message Received:288  218  100  100  1   0.98
          */
 
         for(int i=0;i<5;i++) {
             cout<<OP.data_field[i]<<"  ";
         }
+        std::cout<<std::endl;
+
+        ConfidencePack confidence_;
+        confidence_.pack_field[0] = OP.data_field[5];
+        confidence_.pack_field[1] = OP.data_field[6];
+
+        std::cout<<"tracker confidence : "<<confidence_.confidence<<std::endl;
+
         cout<<endl<<"================= 数据已接收 ================="<<endl;
     }
 
